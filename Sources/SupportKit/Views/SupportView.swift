@@ -24,6 +24,7 @@ public struct SupportView: View {
                     TextField("Email", text: $viewModel.email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
+                        .textContentType(.emailAddress)
                 }
                 
                 Section(header: Text("Feedback Type")) {
@@ -37,8 +38,18 @@ public struct SupportView: View {
                 }
                 
                 Section(header: Text("Description")) {
-                    TextEditor(text: $viewModel.description)
-                        .frame(minHeight: 100)
+                    ZStack(alignment: .topLeading) {
+                        TextEditor(text: $viewModel.description)
+                            .frame(minHeight: 100)
+                        
+                        if viewModel.description.isEmpty {
+                            Text("Please describe your feedback or issue...")
+                                .foregroundColor(.gray)
+                                .padding(.top, 8)
+                                .padding(.leading, 4)
+                                .allowsHitTesting(false)
+                        }
+                    }
                 }
                 
                 Section {
@@ -47,16 +58,7 @@ public struct SupportView: View {
             }
             .navigationTitle(config.title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if config.showCloseButton {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Close") {
-                            dismiss()
-                        }
-                        .foregroundColor(config.primaryColor)
-                    }
-                }
-            }
+            .navigationBarItems(trailing: config.showCloseButton ? closeButton : nil)
             .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
                 Button("OK") {
                     viewModel.errorMessage = nil
@@ -67,11 +69,20 @@ public struct SupportView: View {
             .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
                 Button("OK") {
                     viewModel.successMessage = nil
+                    dismiss()
                 }
             } message: {
                 Text(viewModel.successMessage ?? "")
             }
         }
+        .interactiveDismissDisabled(viewModel.isSubmitting)
+    }
+    
+    private var closeButton: some View {
+        Button("Close") {
+            dismiss()
+        }
+        .foregroundColor(config.primaryColor)
     }
     
     @ViewBuilder
@@ -87,23 +98,14 @@ public struct SupportView: View {
                 }
                 Text(viewModel.isSubmitting ? "Submitting..." : "Submit Feedback")
                     .foregroundColor(buttonTextColor)
+                    .font(.headline)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, 12)
         }
-        .buttonStyle(customButtonStyle)
-        .disabled(viewModel.isSubmitting)
-    }
-    
-    private var customButtonStyle: some PrimitiveButtonStyle {
-        switch config.buttonStyle {
-        case .filled:
-            return FilledButtonStyle(color: config.primaryColor)
-        case .bordered:
-            return BorderedButtonStyle(color: config.primaryColor)
-        case .plain:
-            return PlainButtonStyle()
-        }
+        .buttonStyle(CustomButtonStyle(config: config))
+        .disabled(viewModel.isSubmitting || !isFormValid)
+        .opacity(isFormValid ? 1.0 : 0.6)
     }
     
     private var buttonTextColor: Color {
@@ -114,37 +116,37 @@ public struct SupportView: View {
             return config.primaryColor
         }
     }
-}
-
-// Custom Button Styles
-struct FilledButtonStyle: PrimitiveButtonStyle {
-    let color: Color
     
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(color)
-            .cornerRadius(8)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+    private var isFormValid: Bool {
+        !viewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        viewModel.email.contains("@")
     }
 }
 
-struct BorderedButtonStyle: PrimitiveButtonStyle {
-    let color: Color
+// Single custom button style
+struct CustomButtonStyle: ButtonStyle {
+    let config: SupportConfiguration
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(color, lineWidth: 1)
-            )
+            .background(backgroundView)
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
-}
-
-struct PlainButtonStyle: PrimitiveButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+    
+    @ViewBuilder
+    private var backgroundView: some View {
+        switch config.buttonStyle {
+        case .filled:
+            RoundedRectangle(cornerRadius: 8)
+                .fill(config.primaryColor)
+        case .bordered:
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(config.primaryColor, lineWidth: 2)
+        case .plain:
+            EmptyView()
+        }
     }
 }
 
