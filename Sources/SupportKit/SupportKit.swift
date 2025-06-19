@@ -1,6 +1,12 @@
 import SwiftUI
 import Combine
 
+public protocol SupportFirebaseProtocol {
+    func submitFeedback(_ feedback: SupportFeedback) -> AnyPublisher<Void, Error>
+}
+
+
+
 public struct SupportKit {
     private static var configuration = SupportConfiguration.default
     private static var firebaseProvider: SupportFirebaseProtocol?
@@ -16,7 +22,7 @@ public struct SupportKit {
     
     /// Configure with predefined theme (requires prior Firebase setup)
     public static func configure(_ config: SupportConfiguration = .default) {
-        guard let provider = firebaseProvider else {
+        guard firebaseProvider != nil else {
             fatalError("Must configure Firebase provider first. Call SupportKit.configure(firebaseProvider:) first.")
         }
         self.configuration = config
