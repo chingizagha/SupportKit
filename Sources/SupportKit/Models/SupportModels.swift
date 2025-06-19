@@ -7,12 +7,15 @@
 
 import Foundation
 
-public enum FeedbackType: String, CaseIterable, Codable {
+public enum FeedbackType: String, CaseIterable, Identifiable, Codable {
+
     case bug = "bug"
     case feedback = "feedback"
     case suggestion = "suggestion"
     
-    public var displayName: String {
+    public var id: String { self.rawValue }
+    
+    public var name: String {
         switch self {
         case .bug:
             return "Bug Report"
@@ -20,6 +23,17 @@ public enum FeedbackType: String, CaseIterable, Codable {
             return "Feedback"
         case .suggestion:
             return "Suggestion"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .bug:
+            "ant"
+        case .feedback:
+            "pencil"
+        case .suggestion:
+            "lightbulb"
         }
     }
 }

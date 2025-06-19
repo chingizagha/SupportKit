@@ -8,6 +8,7 @@ import Foundation
 import Combine
 
 internal class SupportViewModel: ObservableObject {
+    
     @Published var email = ""
     @Published var selectedFeedbackType: FeedbackType = .feedback
     @Published var description = ""

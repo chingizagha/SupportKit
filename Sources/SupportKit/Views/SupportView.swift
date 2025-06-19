@@ -8,6 +8,7 @@
 import SwiftUI
 
 public struct SupportView: View {
+    
     @StateObject private var viewModel = SupportViewModel()
     @Environment(\.dismiss) private var dismiss
     
@@ -18,7 +19,8 @@ public struct SupportView: View {
     public init() {}
     
     public var body: some View {
-        NavigationView {
+        VStack {
+            
             Form {
                 Section(header: Text("Contact Information")) {
                     TextField("Email", text: $viewModel.email)
@@ -28,13 +30,16 @@ public struct SupportView: View {
                 }
                 
                 Section(header: Text("Feedback Type")) {
-                    Picker("Type", selection: $viewModel.selectedFeedbackType) {
-                        ForEach(FeedbackType.allCases, id: \.self) { type in
-                            Text(type.displayName).tag(type)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .accentColor(config.primaryColor)
+                    //                    Picker("Type", selection: $viewModel.selectedFeedbackType) {
+                    //                        ForEach(FeedbackType.allCases, id: \.self) { type in
+                    //                            Text(type.displayName).tag(type)
+                    //                        }
+                    //                    }
+                    //                    .pickerStyle(SegmentedPickerStyle())
+                    //                    .accentColor(config.primaryColor)
+                    
+                    FeedbackTypeSelector(feedbackType: $viewModel.selectedFeedbackType)
+                    
                 }
                 
                 Section(header: Text("Description")) {
@@ -53,9 +58,13 @@ public struct SupportView: View {
                 }
                 
                 Section {
-                    submitButton
+                    
                 }
             }
+            
+            
+            submitButton
+        }
             .navigationTitle(config.title)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(trailing: config.showCloseButton ? closeButton : nil)
@@ -74,7 +83,8 @@ public struct SupportView: View {
             } message: {
                 Text(viewModel.successMessage ?? "")
             }
-        }
+        
+        
         .interactiveDismissDisabled(viewModel.isSubmitting)
     }
     
@@ -151,5 +161,7 @@ struct CustomButtonStyle: ButtonStyle {
 }
 
 #Preview {
-    SupportView()
+    NavigationStack {
+        SupportView()
+    }
 }
