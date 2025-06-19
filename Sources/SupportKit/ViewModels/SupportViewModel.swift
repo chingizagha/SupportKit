@@ -4,7 +4,6 @@
 //
 //  Created by Chingiz on 19.06.25.
 //
-
 import Foundation
 import Combine
 
@@ -16,12 +15,16 @@ internal class SupportViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
     
-    private let firebaseManager = SupportFirebaseManager()
     private var cancellables = Set<AnyCancellable>()
     
     func submitFeedback() {
         guard isFormValid else {
             errorMessage = "Please fill in all fields"
+            return
+        }
+        
+        guard let provider = SupportKit.currentFirebaseProvider else {
+            errorMessage = "SupportKit not configured properly"
             return
         }
         
@@ -34,7 +37,8 @@ internal class SupportViewModel: ObservableObject {
             description: description.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         
-        firebaseManager.submitFeedback(feedback)
+        let manager = SupportFirebaseManager(provider: provider)
+        manager.submitFeedback(feedback)
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] completion in

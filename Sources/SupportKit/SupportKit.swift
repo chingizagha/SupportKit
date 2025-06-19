@@ -1,39 +1,68 @@
+// Sources/SupportKit/Protocols/SupportFirebaseProtocol.swift
+
+
+// Sources/SupportKit/SupportKit.swift (Updated)
 import SwiftUI
 import Combine
 
 public struct SupportKit {
-    
     private static var configuration = SupportConfiguration.default
+    private static var firebaseProvider: SupportFirebaseProtocol?
     
-    /// Configure SupportKit with custom appearance
+    /// Configure SupportKit with Firebase provider
+    public static func configure(
+        firebaseProvider: SupportFirebaseProtocol,
+        configuration: SupportConfiguration = .default
+    ) {
+        self.firebaseProvider = firebaseProvider
+        self.configuration = configuration
+    }
+    
+    /// Configure with predefined theme (requires prior Firebase setup)
     public static func configure(_ config: SupportConfiguration = .default) {
+        guard let provider = firebaseProvider else {
+            fatalError("Must configure Firebase provider first. Call SupportKit.configure(firebaseProvider:) first.")
+        }
         self.configuration = config
     }
     
-    /// Get current configuration (internal use)
+    /// Get current configuration
     internal static var currentConfiguration: SupportConfiguration {
         return configuration
     }
     
-    /// Present support view with current configuration
+    /// Get Firebase provider
+    internal static var currentFirebaseProvider: SupportFirebaseProtocol? {
+        return firebaseProvider
+    }
+    
+    /// Present support view
     public static func presentSupport() -> SupportView {
+        guard firebaseProvider != nil else {
+            fatalError("SupportKit not configured. Call SupportKit.configure(firebaseProvider:) first.")
+        }
         return SupportView()
     }
     
-    /// Submit feedback programmatically without UI
+    /// Submit feedback programmatically
     public static func submitFeedback(
         email: String,
         type: FeedbackType,
         description: String,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
+        guard let provider = firebaseProvider else {
+            completion(.failure(SupportKitError.notConfigured))
+            return
+        }
+        
         let feedback = SupportFeedback(
             email: email,
             feedbackType: type,
             description: description
         )
         
-        let manager = SupportFirebaseManager()
+        let manager = SupportFirebaseManager(provider: provider)
         var cancellable: AnyCancellable?
         
         cancellable = manager.submitFeedback(feedback)
@@ -51,5 +80,16 @@ public struct SupportKit {
                     completion(.success(()))
                 }
             )
+    }
+}
+
+public enum SupportKitError: Error {
+    case notConfigured
+    
+    public var localizedDescription: String {
+        switch self {
+        case .notConfigured:
+            return "SupportKit not configured. Call SupportKit.configure(firebaseProvider:) first."
+        }
     }
 }
