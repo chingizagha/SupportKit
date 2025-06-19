@@ -1,123 +1,43 @@
 # SupportKit
 
-Easy Firebase-powered support system for iOS apps.
+Firebase-powered support system for iOS apps with 3 lines of setup.
 
-## Requirements
+## Features
 
-- iOS 14.0+ / macOS 11.0+
-- Firebase project with Firestore enabled
-- Firebase iOS SDK already added to your project
+- Customizable UI with multiple themes
+- SwiftUI native with smooth animations  
+- Firebase Firestore integration
+- Easy 3-line setup
+- Full Swift type safety
+- Programmatic API
 
-## Installation
+## Quick Start
 
-### ⚠️ Important: Add Firebase First!
+### 1. Add Dependencies
 
-**Step 1: Add Firebase SDK to your app**
-
-In Xcode: **File → Add Package Dependencies**
-
+**Firebase first:**
 ```
 https://github.com/firebase/firebase-ios-sdk
 ```
+Select: `FirebaseCore` + `FirebaseFirestore`
 
-**Required Firebase products for your app target:**
-- ✅ `FirebaseCore`
-- ✅ `FirebaseFirestore`
-
-**Step 2: Add SupportKit**
-
-Then add SupportKit package:
-```
+**Then SupportKit:**
+```  
 https://github.com/chingizagha/SupportKit
 ```
 
-### Complete Package.swift Example
+### 2. Setup (3 lines)
 
 ```swift
-// swift-tools-version: 5.9
-import PackageDescription
-
-let package = Package(
-    name: "YourApp",
-    platforms: [.iOS(.v14)],
-    products: [
-        .executable(name: "YourApp", targets: ["YourApp"])
-    ],
-    dependencies: [
-        // Add Firebase FIRST
-        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "10.0.0"),
-        // Then add SupportKit
-        .package(url: "https://github.com/chingizagha/SupportKit", from: "1.0.0")
-    ],
-    targets: [
-        .executableTarget(
-            name: "YourApp",
-            dependencies: [
-                // Firebase dependencies for your app
-                .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
-                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
-                // SupportKit dependency
-                .product(name: "SupportKit", package: "SupportKit")
-            ]
-        )
-    ]
-)
-```
-
-## Setup
-
-### 1. Create Firebase Provider in Your App
-
-Create a file `FirebaseProvider.swift` in your app:
-
-```swift
-import Foundation
-import Combine
-import FirebaseFirestore
-import SupportKit
-
-class MyFirebaseProvider: SupportFirebaseProtocol {
-    private let db = Firestore.firestore()
-    
-    func submitFeedback(_ feedback: SupportFeedback) -> AnyPublisher<Void, Error> {
-        return Future { promise in
-            do {
-                let feedbackData = try Firestore.Encoder().encode(feedback)
-                
-                self.db.collection("support_feedback").document(feedback.id).setData(feedbackData) { error in
-                    if let error = error {
-                        promise(.failure(error))
-                    } else {
-                        promise(.success(()))
-                    }
-                }
-            } catch {
-                promise(.failure(error))
-            }
-        }
-        .eraseToAnyPublisher()
-    }
-}
-```
-
-### 2. Configure Firebase and SupportKit
-
-```swift
-import SwiftUI
+// App.swift
 import FirebaseCore
 import SupportKit
 
 @main
 struct MyApp: App {
     init() {
-        // Configure Firebase first
         FirebaseApp.configure()
-        
-        // Configure SupportKit with your Firebase provider
-        SupportKit.configure(
-            firebaseProvider: MyFirebaseProvider(),
-            configuration: .brand
-        )
+        SupportKit.configure(firebaseProvider: MyFirebaseProvider())
     }
     
     var body: some Scene {
@@ -128,230 +48,150 @@ struct MyApp: App {
 }
 ```
 
-### 3. Customization Options
+### 3. Create Firebase Provider
 
 ```swift
-// Option 1: Default appearance
-SupportKit.configure(
-    firebaseProvider: MyFirebaseProvider()
-)
+// MyFirebaseProvider.swift
+import FirebaseFirestore
+import SupportKit
 
-// Option 2: Custom appearance
-SupportKit.configure(
-    firebaseProvider: MyFirebaseProvider(),
-    configuration: SupportConfiguration(
-        title: "Help & Support",
-        primaryColor: .purple,
-        buttonStyle: .filled,
-        showCloseButton: true
-    )
-)
-
-// Option 3: Predefined themes
-SupportKit.configure(
-    firebaseProvider: MyFirebaseProvider(),
-    configuration: .brand    // Purple theme
-)
-
-SupportKit.configure(
-    firebaseProvider: MyFirebaseProvider(),
-    configuration: .minimal  // Gray theme
-)
-```
-
-### 4. Customization Settings
-
-```swift
-SupportConfiguration(
-    title: "Your Title",           // Navigation title
-    primaryColor: .blue,           // Accent color throughout
-    buttonStyle: .filled,          // .filled, .bordered, or .plain
-    showCloseButton: true          // Show/hide close button
-)
-```
-
-### 5. Button Styles
-
-- **`.filled`**: Solid background button (default)
-- **`.bordered`**: Outlined button  
-- **`.plain`**: Text-only button
-
-### 6. Predefined Themes
-
-```swift
-.default  // Blue theme, filled buttons
-.brand    // Purple theme, filled buttons  
-.minimal  // Gray theme, plain buttons
-```
-
-### 7. Add Firestore Security Rules
-
-In Firebase Console → Firestore Database → Rules:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Allow support feedback submission
-    match /support_feedback/{document} {
-      allow write: if 
-        request.resource.data.keys().hasAll(['email', 'feedbackType', 'description', 'timestamp']) &&
-        request.resource.data.email is string &&
-        request.resource.data.email.matches('.*@.*') &&
-        request.resource.data.feedbackType in ['bug', 'feedback', 'suggestion'] &&
-        request.resource.data.description is string &&
-        request.resource.data.description.size() > 0;
-      
-      allow read: if false; // Users can't read others' feedback
+final class MyFirebaseProvider: SupportFirebaseProtocol {
+    func submitFeedback(_ feedback: SupportFeedback) -> AnyPublisher<Void, Error> {
+        return Future<Void, Error> { promise in
+            let data: [String: Any] = [
+                "email": feedback.email,
+                "type": feedback.feedbackType.rawValue,
+                "description": feedback.description,
+                "timestamp": Timestamp(date: feedback.timestamp)
+            ]
+            
+            Firestore.firestore()
+                .collection("support_feedback")
+                .document(feedback.id)
+                .setData(data) { error in
+                    if let error = error {
+                        promise(.failure(error))
+                    } else {
+                        promise(.success(()))
+                    }
+                }
+        }
+        .eraseToAnyPublisher()
     }
-    
-    // Block everything else
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
 }
 ```
 
-## Usage
-
-### Present Support UI
+### 4. Show Support UI
 
 ```swift
+// ContentView.swift
 import SupportKit
 
 struct ContentView: View {
-    @State private var showingSupport = false
+    @State private var showSupport = false
     
     var body: some View {
-        VStack {
-            Button("Contact Support") {
-                showingSupport = true
-            }
+        Button("Help & Support") {
+            showSupport = true
         }
-        .sheet(isPresented: $showingSupport) {
+        .sheet(isPresented: $showSupport) {
             SupportKit.presentSupport()
         }
     }
 }
 ```
 
-### Programmatic Submission
+## Customization
+
+### Built-in Themes
 
 ```swift
-import SupportKit
+SupportKit.configure(firebaseProvider: provider, configuration: .default)  // Blue
+SupportKit.configure(firebaseProvider: provider, configuration: .brand)    // Purple  
+SupportKit.configure(firebaseProvider: provider, configuration: .minimal)  // Gray
+```
 
-func submitBugReport() {
-    SupportKit.submitFeedback(
-        email: "user@example.com",
-        type: .bug,
-        description: "App crashes when opening settings"
-    ) { result in
-        switch result {
-        case .success():
-            print("Feedback submitted successfully")
-        case .failure(let error):
-            print("Failed to submit feedback: \(error)")
-        }
+### Custom Configuration
+
+```swift
+SupportKit.configure(
+    firebaseProvider: MyFirebaseProvider(),
+    configuration: SupportConfiguration(
+        title: "Get Help",
+        primaryColor: .red,
+        buttonStyle: .bordered,
+        showCloseButton: true
+    )
+)
+```
+
+### Button Styles
+
+- `.filled` - Solid background button
+- `.bordered` - Outlined button
+- `.plain` - Text only button
+
+## Firebase Setup
+
+### Firestore Rules
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /support_feedback/{document} {
+      allow write: if 
+        request.resource.data.email is string &&
+        request.resource.data.email.matches('.*@.*');
+      allow read: if false;
     }
+  }
 }
 ```
 
-### Available Feedback Types
-
-```swift
-.bug         // Bug Report
-.feedback    // General Feedback  
-.suggestion  // Feature Suggestion
-```
-
-## Data Structure
-
-Feedback is stored in Firestore under the `support_feedback` collection:
+### Data Structure
 
 ```
 support_feedback/
   └── {feedbackId}/
-      ├── id: String
-      ├── email: String
-      ├── feedbackType: String ("bug", "feedback", "suggestion")
-      ├── description: String
+      ├── email: "user@example.com"
+      ├── type: "bug" | "feedback" | "suggestion"  
+      ├── description: "App crashes when..."
       └── timestamp: Timestamp
 ```
 
-## Features
-
-- ✅ Simple 3-field form (email, type, description)
-- ✅ Input validation
-- ✅ Loading states
-- ✅ Error handling
-- ✅ Success feedback
-- ✅ Programmatic API
-- ✅ SwiftUI native
-- ✅ Firebase Firestore integration
-- ✅ Customizable appearance
-- ✅ Multiple themes
-- ✅ Protocol-based architecture
-
-## Troubleshooting
-
-### Error: "Missing required modules: 'FirebaseCore', 'FirebaseCoreExtension'"
-
-This means Firebase isn't properly added to your app. Fix:
-
-1. **Check Package Dependencies**: Ensure Firebase SDK is added to your **app target** (not just the package)
-2. **Required Firebase Products**: Add `FirebaseCore` and `FirebaseFirestore` to your app target
-3. **Build Order**: Add Firebase first, then SupportKit
-4. **Clean Build**: Product → Clean Build Folder, then rebuild
-
-### Error: "No such module 'FirebaseFirestore'"
-
-Your app target is missing FirebaseFirestore:
-1. Select your app target in Xcode
-2. Go to **Build Phases → Link Binary With Libraries**  
-3. Add `FirebaseFirestore` if missing
-
-### Error: "SupportKit not configured"
-
-Make sure you create and configure the Firebase provider:
+## Programmatic Usage
 
 ```swift
-// Create provider
-class MyFirebaseProvider: SupportFirebaseProtocol { ... }
-
-// Configure SupportKit
-SupportKit.configure(firebaseProvider: MyFirebaseProvider())
-```
-
-### Error: App crashes on Firebase methods
-
-Make sure you call `FirebaseApp.configure()` in your App.swift:
-
-```swift
-import FirebaseCore
-
-@main
-struct YourApp: App {
-    init() {
-        FirebaseApp.configure() // ← Required!
+SupportKit.submitFeedback(
+    email: "user@example.com",
+    type: .bug,
+    description: "App crashes on startup"
+) { result in
+    switch result {
+    case .success():
+        print("Feedback sent")
+    case .failure(let error):
+        print("Error: \(error)")
     }
-    // ...
 }
 ```
 
-### Still having issues?
+## Troubleshooting
 
-1. Restart Xcode
-2. Delete derived data: `~/Library/Developer/Xcode/DerivedData`
-3. Clean and rebuild project
-4. Make sure you created the Firebase provider class in your app
-5. Verify Firebase rules are set up correctly
+**Can't see protocol?**
+- Make sure Firebase is added to your app target
+- Clean build folder and rebuild
 
-## Requirements for Your Firebase Project
+**App crashes?**
+- Add `FirebaseApp.configure()` in App.swift
+- Check Firebase provider implementation
 
-1. Create a Firestore database
-2. Set up the security rules above
-3. Your app must call `FirebaseApp.configure()` before using SupportKit
-4. Create a class implementing `SupportFirebaseProtocol` in your app
+**Firebase errors?**
+- Verify Firestore rules are set up
+- Check internet connection
 
-That's it! SupportKit handles everything else automatically.
+## Requirements
+
+- iOS 14.0+
+
