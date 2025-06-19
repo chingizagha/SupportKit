@@ -1,7 +1,3 @@
-// Sources/SupportKit/Protocols/SupportFirebaseProtocol.swift
-
-
-// Sources/SupportKit/SupportKit.swift (Updated)
 import SwiftUI
 import Combine
 
