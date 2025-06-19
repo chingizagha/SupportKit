@@ -25,11 +25,11 @@ public enum FeedbackType: String, CaseIterable, Codable {
 }
 
 public struct SupportFeedback: Codable {
-    let id: String
-    let email: String
-    let feedbackType: FeedbackType
-    let description: String
-    let timestamp: Date
+    public let id: String
+    public let email: String
+    public let feedbackType: FeedbackType
+    public let description: String
+    public let timestamp: Date
     
     public init(email: String, feedbackType: FeedbackType, description: String) {
         self.id = UUID().uuidString
