@@ -11,6 +11,7 @@ public struct SupportView: View {
     
     @StateObject private var viewModel = SupportViewModel()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     private var config: SupportConfiguration {
         SupportKit.currentConfiguration
@@ -19,112 +20,139 @@ public struct SupportView: View {
     public init() {}
     
     public var body: some View {
-        VStack {
-            
-            Form {
-                Section(header: Text("Contact Information")) {
-                    TextField("Email", text: $viewModel.email)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .textContentType(.emailAddress)
-                }
-                
-                Section(header: Text("Feedback Type")) {
-                    //                    Picker("Type", selection: $viewModel.selectedFeedbackType) {
-                    //                        ForEach(FeedbackType.allCases, id: \.self) { type in
-                    //                            Text(type.displayName).tag(type)
-                    //                        }
-                    //                    }
-                    //                    .pickerStyle(SegmentedPickerStyle())
-                    //                    .accentColor(config.primaryColor)
-                    
-                    FeedbackTypeSelector(feedbackType: $viewModel.selectedFeedbackType)
-                    
-                }
-                
-                Section(header: Text("Description")) {
-                    ZStack(alignment: .topLeading) {
-                        TextEditor(text: $viewModel.description)
-                            .frame(minHeight: 100)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Simple header
+                    VStack(spacing: 8) {
+                        Text("How can we help?")
+                            .font(.title2)
+                            .fontWeight(.semibold)
                         
-                        if viewModel.description.isEmpty {
-                            Text("Please describe your feedback or issue...")
-                                .foregroundColor(.gray)
-                                .padding(.top, 8)
-                                .padding(.leading, 4)
-                                .allowsHitTesting(false)
+                        Text("Share your feedback or report an issue")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Form fields
+                    VStack(spacing: 20) {
+                        // Email field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Email")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                            
+                            TextField("", text: $viewModel.email)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .textContentType(.emailAddress)
+                        }
+                        
+                        // Feedback type
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Feedback Type")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                            
+                            FeedbackTypeSelector(feedbackType: $viewModel.selectedFeedbackType, config: config)
+                        }
+                        
+                        // Description
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Description")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                            
+                            ZStack(alignment: .topLeading) {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .foregroundColor(.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color(.systemGray4), lineWidth: 0.5)
+                                    )
+                                    .frame(minHeight: 100)
+                                
+                                TextEditor(text: $viewModel.description)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.clear)
+                                
+                                if viewModel.description.isEmpty {
+                                    Text("Tell us more about your feedback...")
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                        .allowsHitTesting(false)
+                                }
+                            }
                         }
                     }
-                }
-                
-                Section {
+                    .padding(.horizontal, 20)
                     
+                    Spacer(minLength: 20)
                 }
             }
             
-            
-            submitButton
+            // Submit button at bottom
+            VStack {
+                Divider()
+                
+                Button(action: {
+                    viewModel.submitFeedback()
+                }) {
+                    HStack {
+                        if viewModel.isSubmitting {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.white)
+                        }
+                        Text(viewModel.isSubmitting ? "Submitting..." : "Submit Feedback")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .foregroundColor(isFormValid ? config.primaryColor : Color.gray)
+                    )
+                }
+                .disabled(viewModel.isSubmitting || !isFormValid)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }
+            .background(Color(.systemBackground))
         }
-            .navigationTitle(config.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: config.showCloseButton ? closeButton : nil)
-            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("OK") {
-                    viewModel.errorMessage = nil
+        .navigationTitle(config.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if config.showCloseButton {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                    .foregroundColor(config.primaryColor)
                 }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
             }
-            .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
-                Button("OK") {
-                    viewModel.successMessage = nil
-                    dismiss()
-                }
-            } message: {
-                Text(viewModel.successMessage ?? "")
+        }
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") {
+                viewModel.errorMessage = nil
             }
-        
-        
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+        .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
+            Button("OK") {
+                viewModel.successMessage = nil
+                dismiss()
+            }
+        } message: {
+            Text(viewModel.successMessage ?? "")
+        }
         .interactiveDismissDisabled(viewModel.isSubmitting)
-    }
-    
-    private var closeButton: some View {
-        Button("Close") {
-            dismiss()
-        }
-        .foregroundColor(config.primaryColor)
-    }
-    
-    @ViewBuilder
-    private var submitButton: some View {
-        Button(action: {
-            viewModel.submitFeedback()
-        }) {
-            HStack {
-                if viewModel.isSubmitting {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .foregroundColor(buttonTextColor)
-                }
-                Text(viewModel.isSubmitting ? "Submitting..." : "Submit Feedback")
-                    .foregroundColor(buttonTextColor)
-                    .font(.headline)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-        }
-        .buttonStyle(CustomButtonStyle(config: config))
-        .disabled(viewModel.isSubmitting || !isFormValid)
-        .opacity(isFormValid ? 1.0 : 0.6)
-    }
-    
-    private var buttonTextColor: Color {
-        switch config.buttonStyle {
-        case .filled:
-            return .white
-        case .bordered, .plain:
-            return config.primaryColor
-        }
     }
     
     private var isFormValid: Bool {
@@ -134,28 +162,51 @@ public struct SupportView: View {
     }
 }
 
-// Single custom button style
-struct CustomButtonStyle: ButtonStyle {
+// MARK: - Updated FeedbackTypeSelector
+struct FeedbackTypeSelector: View {
+    
+    @Binding var feedbackType: FeedbackType
     let config: SupportConfiguration
     
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(backgroundView)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-    
-    @ViewBuilder
-    private var backgroundView: some View {
-        switch config.buttonStyle {
-        case .filled:
-            RoundedRectangle(cornerRadius: 8)
-                .fill(config.primaryColor)
-        case .bordered:
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(config.primaryColor, lineWidth: 2)
-        case .plain:
-            EmptyView()
+    var body: some View {
+        Menu {
+            ForEach(FeedbackType.allCases) { feedback in
+                Button(action: {
+                    feedbackType = feedback
+                }) {
+                    HStack {
+                        Image(systemName: feedback.icon)
+                        Text(feedback.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: feedbackType.icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(.primary)
+                
+                Text(feedbackType.name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .foregroundColor(config.primaryColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(config.primaryColor.opacity(0.3), lineWidth: 1)
+                    )
+            )
         }
     }
 }
