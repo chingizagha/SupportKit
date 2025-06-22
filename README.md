@@ -2,7 +2,7 @@
 
 Firebase-powered support system for iOS apps with 3 lines of setup.
 
-![SupportKit Logo](assets/preview.png)
+![SupportKit Logo](Assets/preview.png)
 
 ## Features
 
