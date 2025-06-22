@@ -5,71 +5,52 @@
 //  Created by Chingiz on 19.06.25.
 //
 
+import SwiftUI
 
-//import SwiftUI
-//
-//struct FeedbackTypeSelector: View {
-//
-//    @Binding var feedbackType: FeedbackType
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 4) {
-//            // Label
-//            Text("Feedback Type")
-//                .font(.system(size: 11, weight: .medium))
-//                .foregroundColor(.gray)
-//                .lineLimit(1)
-//
-//            Menu {
-//                ForEach(FeedbackType.allCases) { feedback in
-//                    Button(action: {
-//                            feedbackType = feedback
-//                    }) {
-//                        HStack {
-//                            Image(systemName: feedback.icon)
-//
-//                            Text(feedback.name)
-//                        }
-//                        .lineLimit(nil)
-//                    }
-//                }
-//            } label: {
-//                HStack(spacing: 4) {
-//
-//                    Image(systemName: feedbackType.icon)
-//                        .font(.system(size: 14))
-//
-//
-//                    Text(feedbackType.name)
-//                        .font(.system(size: 14, weight: .semibold))
-////                        .foregroundColor(.primaryBlue)
-//                        .lineLimit(1)
-//                        .minimumScaleFactor(0.7)
-//
-//                    Spacer(minLength: 2)
-//
-//                    Image(systemName: "chevron.down")
-//                        .font(.system(size: 10))
-////                        .foregroundColor(.primaryBlue)
-//                }
-////                .padding(.horizontal, 8)
-////                .padding(.vertical, 8)
-//                .frame(height: 36)
-////                .background(
-////                    Capsule()
-////                        .fill(Color.secondaryBlue.opacity(0.12))
-////                )
-////                .overlay(
-////                    Capsule()
-////                        .stroke(Color.primaryBlue.opacity(0.2), lineWidth: 1)
-////                )
-//            }
-//        }
-//    }
-//}
-
-//#Preview {
-//    FeedbackTypeSelector(feedbackType: .constant(.bug))
-//}
-
-
+struct FeedbackTypeSelector: View {
+    
+    @Binding var feedbackType: FeedbackType
+    let config: SupportConfiguration
+    
+    var body: some View {
+        Menu {
+            ForEach(FeedbackType.allCases) { feedback in
+                Button(action: {
+                    feedbackType = feedback
+                }) {
+                    HStack {
+                        Image(systemName: feedback.icon)
+                        Text(feedback.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: feedbackType.icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(.primary)
+                
+                Text(feedbackType.name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .foregroundColor(config.primaryColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(config.primaryColor.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+    }
+}

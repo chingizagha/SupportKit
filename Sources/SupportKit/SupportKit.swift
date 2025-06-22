@@ -5,8 +5,6 @@ public protocol SupportFirebaseProtocol {
     func submitFeedback(_ feedback: SupportFeedback) -> AnyPublisher<Void, Error>
 }
 
-
-
 public struct SupportKit {
     private static var configuration = SupportConfiguration.default
     private static var firebaseProvider: SupportFirebaseProtocol?
